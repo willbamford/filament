@@ -54,7 +54,8 @@ buildscript {
         "-DANDROID_PLATFORM=21",
         "-DANDROID_STL=c++_static",
         "-DFILAMENT_DIST_DIR=${filamentPath}".toString(),
-        "-DFILAMENT_SUPPORTS_VULKAN=${hasVulkan ? 'ON' : 'OFF'}".toString()
+        "-DFILAMENT_SUPPORTS_VULKAN=${hasVulkan ? 'ON' : 'OFF'}".toString(),
+        "-std=c++17"
     ]
 
     ext.cppFlags = [
