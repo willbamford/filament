@@ -408,7 +408,7 @@ void VulkanDriver::createRenderTargetR(Handle<HwRenderTarget> rth,
     auto colorTexture = color[0].handle ? handle_cast<VulkanTexture>(mHandleMap, color[0].handle) : nullptr;
     auto depthTexture = depth.handle ? handle_cast<VulkanTexture>(mHandleMap, depth.handle) : nullptr;
     auto renderTarget = construct_handle<VulkanRenderTarget>(mHandleMap, rth, mContext,
-            width, height, color[0].level, colorTexture, depth.level, depthTexture);
+            width, height, color[0].level, color[0].layer, colorTexture, depth.level, depthTexture);
     mDisposer.createDisposable(renderTarget, [this, rth] () {
         destruct_handle<VulkanRenderTarget>(mHandleMap, rth);
     });

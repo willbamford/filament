@@ -95,9 +95,9 @@ static VulkanAttachment createOffscreenAttachment(VulkanTexture* tex) {
 }
 
 VulkanRenderTarget::VulkanRenderTarget(VulkanContext& context, uint32_t width, uint32_t height,
-        uint32_t colorLevel, VulkanTexture* color, uint32_t depthLevel, VulkanTexture* depth) :
-        HwRenderTarget(width, height), mContext(context), mOffscreen(true), mColorLevel(colorLevel),
-        mDepthLevel(depthLevel) {
+        uint32_t colorLevel, uint16_t colorLayer, VulkanTexture* color, uint32_t depthLevel,
+        VulkanTexture* depth) : HwRenderTarget(width, height), mContext(context), mOffscreen(true),
+        mColorLevel(colorLevel), mColorLayer(colorLayer), mDepthLevel(depthLevel) {
     mColor = createOffscreenAttachment(color);
     mDepth = createOffscreenAttachment(depth);
 
@@ -116,6 +116,10 @@ VulkanRenderTarget::VulkanRenderTarget(VulkanContext& context, uint32_t width, u
         if (color->target == SamplerType::SAMPLER_CUBEMAP) {
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
             viewInfo.subresourceRange.layerCount = 6;
+        } else if (color->target == SamplerType::SAMPLER_2D_ARRAY) {
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            viewInfo.subresourceRange.baseArrayLayer = colorLayer;
+            viewInfo.subresourceRange.layerCount = 1;
         } else {
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             viewInfo.subresourceRange.layerCount = 1;
@@ -302,9 +306,9 @@ VulkanTexture::VulkanTexture(VulkanContext& context, SamplerType target, uint8_t
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = vkformat,
-        .extent = { w, h, depth },
+        .extent = { w, h, 1 },
         .mipLevels = levels,
-        .arrayLayers = 1,
+        .arrayLayers = depth,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .usage = 0
     };
@@ -328,6 +332,9 @@ VulkanTexture::VulkanTexture(VulkanContext& context, SamplerType target, uint8_t
     }
     if (any(usage & TextureUsage::DEPTH_ATTACHMENT)) {
         imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    if (target == SamplerType::SAMPLER_2D_ARRAY) {
+        imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
     }
 
     VkResult error = vkCreateImage(context.device, &imageInfo, VKALLOC, &textureImage);
@@ -368,8 +375,8 @@ VulkanTexture::VulkanTexture(VulkanContext& context, SamplerType target, uint8_t
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
         viewInfo.subresourceRange.layerCount = 6;
     } else {
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.viewType = depth > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.subresourceRange.layerCount = depth;
     }
     if (any(usage & TextureUsage::DEPTH_ATTACHMENT)) {
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
