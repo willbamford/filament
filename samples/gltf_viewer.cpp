@@ -27,6 +27,7 @@
 #include <filament/Skybox.h>
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
+#include <filament/LightManager.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -36,6 +37,9 @@
 #include <getopt/getopt.h>
 
 #include <utils/NameComponentManager.h>
+#include <utils/EntityManager.h>
+
+#include <math/mat4.h>
 
 #include <math/vec3.h>
 #include <math/vec4.h>
@@ -45,6 +49,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "generated/resources/gltf_viewer.h"
 
@@ -52,6 +57,7 @@ using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
+using namespace math;
 
 struct App {
     Engine* engine;
@@ -67,6 +73,12 @@ struct App {
 
     gltfio::ResourceLoader* resourceLoader = nullptr;
 
+    std::vector<Entity> spotlights;
+    bool spotlightEnabled[10];
+    bool spotlightCastsShadows[10];
+    float spotlightCone[10];
+    int spotlightShadowSize[10];
+    float spotlightNormalBias[10];
     bool actualSize = false;
 
     struct ViewOptions {
@@ -260,7 +272,8 @@ int main(int argc, char** argv) {
     App app;
 
     app.config.title = "Filament";
-    app.config.iblDirectory = FilamentApp::getRootAssetsPath() + DEFAULT_IBL;
+    // app.config.splitView = true;
+    // app.config.iblDirectory = FilamentApp::getRootAssetsPath() + DEFAULT_IBL;
 
     int optionIndex = handleCommandLineArguments(argc, argv, &app);
     utils::Path filename;
@@ -340,6 +353,20 @@ int main(int argc, char** argv) {
         }
     };
 
+    static auto forEachEntityWithName = [](FilamentAsset* asset, const char* name, auto f) {
+        Entity const* entities = asset->getEntities();
+        for (size_t e = 0; e < asset->getEntityCount(); e++) {
+            Entity entity = entities[e];
+            const char* entityName = asset->getName(entity);
+            if (!entityName) {
+                continue;
+            }
+            if (strstr(entityName, name) != nullptr) {
+                f(entity);
+            }
+        }
+    };
+
     auto setup = [&](Engine* engine, View* view, Scene* scene) {
         app.engine = engine;
         app.names = new NameComponentManager(EntityManager::get());
@@ -359,7 +386,57 @@ int main(int argc, char** argv) {
 
         createGroundPlane(engine, scene, app);
 
-        app.viewer->setUiCallback([&app, scene] () {
+        forEachEntityWithName(app.asset, "Point Sphere", [&](Entity entity) {
+            // Create a point light.
+            Entity pointLight = EntityManager::get().create();
+            // app.spotlights.push_back(spotLight);
+            LightManager::Builder(LightManager::Type::POINT)
+                    .intensity(2000.0f, LightManager::EFFICIENCY_HALOGEN)
+                    .falloff(10.0f)
+                    .castShadows(true)
+                    .build(*engine, pointLight);
+
+            // Hide the point sphere entity.
+            RenderableManager& rm = engine->getRenderableManager();
+            auto pointSphereInstance = rm.getInstance(entity);
+            rm.setCastShadows(pointSphereInstance, false);
+            rm.setLayerMask(pointSphereInstance, 0xF, 0x8);
+
+            // Parent the spot light to the spot cone's transform.
+            TransformManager& tcm = engine->getTransformManager();
+            tcm.create(pointLight, tcm.getInstance(entity), {});
+            scene->addEntity(pointLight);
+        });
+
+        forEachEntityWithName(app.asset, "Spot Cone", [&](Entity entity) {
+            // Create a spot light.
+            Entity spotLight = EntityManager::get().create();
+            app.spotlights.push_back(spotLight);
+            LightManager::Builder(LightManager::Type::SPOT)
+                    .intensity(200000.0f, LightManager::EFFICIENCY_HALOGEN)
+                    .direction({0.0f, -1.0f, 0.0f})
+                    .falloff(5.0f)
+                    .castShadows(true)
+                    .build(*engine, spotLight);
+
+            // Hide the spot cone entity.
+            RenderableManager& rm = engine->getRenderableManager();
+            auto spotConeInstance = rm.getInstance(entity);
+            rm.setCastShadows(spotConeInstance, false);
+            rm.setLayerMask(spotConeInstance, 0xF, 0x8);
+
+            // Parent the spot light to the spot cone's transform.
+            TransformManager& tcm = engine->getTransformManager();
+            tcm.create(spotLight, tcm.getInstance(entity), {});
+            scene->addEntity(spotLight);
+        });
+
+        std::fill_n(app.spotlightEnabled, 10, true);
+        std::fill_n(app.spotlightCastsShadows, 10, true);
+        std::fill_n(app.spotlightCone, 10, F_PI / 4);
+        std::fill_n(app.spotlightShadowSize, 10, 1024);
+        std::fill_n(app.spotlightNormalBias, 10, 1.0f);
+        app.viewer->setUiCallback([&app, scene, engine] () {
             float progress = app.resourceLoader->asyncGetLoadProgress();
             if (progress < 1.0) {
                 ImGui::ProgressBar(progress);
@@ -386,6 +463,47 @@ int main(int argc, char** argv) {
                 ImGui::SliderFloat("Speed", &app.viewOptions.cameraSpeed, 800.0f, 1.0f);
                 ImGui::SliderFloat("ISO", &app.viewOptions.cameraISO, 25.0f, 6400.0f);
             }
+
+            LightManager& lm = engine->getLightManager();
+            for (size_t i = 0; i < app.spotlights.size(); i++) {
+                char buffer[64];
+                sprintf(buffer, "Spot light %zu enabled", i);
+                ImGui::Checkbox(buffer, &app.spotlightEnabled[i]);
+
+                sprintf(buffer, "Spot light %zu casts shadows", i);
+                ImGui::Checkbox(buffer, &app.spotlightCastsShadows[i]);
+
+                sprintf(buffer, "Spot light %zu cone angle", i);
+                ImGui::SliderFloat(buffer, &app.spotlightCone[i], 0.0f, F_PI / 2);
+
+                sprintf(buffer, "Spot light %zu shadow size", i);
+                ImGui::SliderInt(buffer, &app.spotlightShadowSize[i], 1, 2048);
+
+                sprintf(buffer, "Spot light %zu normal bias", i);
+                ImGui::SliderFloat(buffer, &app.spotlightNormalBias[i], 0.0f, 2.0f);
+
+                if (app.spotlightEnabled[i]) {
+                    scene->addEntity(app.spotlights[i]);
+                } else {
+                    scene->remove(app.spotlights[i]);
+                }
+
+                LightManager::Instance l = lm.getInstance(app.spotlights[i]);
+                lm.setShadowCaster(l, app.spotlightCastsShadows[i]);
+                const float outer = app.spotlightCone[i];
+                const float inner = outer - .1f;
+                lm.setSpotLightCone(l, inner, outer);
+                auto so = lm.getShadowOptions(l);
+                so.mapSize = app.spotlightShadowSize[i];
+                so.normalBias = app.spotlightNormalBias[i];
+                lm.setShadowOptions(l, so);
+            }
+
+            if (ImGui::Button("Toggle directional / spot", {100, 100})) {
+                app.viewer->setDirectionalLightCastShadows(false);
+                lm.setShadowCaster(lm.getInstance(app.spotlights[0]), true);
+                app.spotlightCastsShadows[0] = true;
+            }
         });
 
         // Leave FXAA enabled but we also enable MSAA for a nice result. The wireframe looks
@@ -405,8 +523,11 @@ int main(int argc, char** argv) {
         delete app.viewer;
         delete app.materials;
         delete app.names;
-
         AssetLoader::destroy(&app.loader);
+        for (auto spotLight : app.spotlights) {
+            engine->getLightManager().destroy(spotLight);
+            engine->destroy(spotLight);
+        }
     };
 
     auto animate = [&app](Engine* engine, View* view, double now) {

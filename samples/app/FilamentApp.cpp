@@ -127,15 +127,22 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
         window->mOrthoView->getView()->setVisibleLayers(0x6, 0x6);
 
         // only preserve the color buffer for additional views; depth and stencil can be discarded.
+        /*
         window->mDepthView->getView()->setRenderTarget(View::TargetBufferFlags::DEPTH_AND_STENCIL);
         window->mGodView->getView()->setRenderTarget(View::TargetBufferFlags::DEPTH_AND_STENCIL);
         window->mOrthoView->getView()->setRenderTarget(View::TargetBufferFlags::DEPTH_AND_STENCIL);
+         */
+        window->mDepthView->getView()->setRenderTarget(View::TargetBufferFlags::NONE);
+        window->mGodView->getView()->setRenderTarget(View::TargetBufferFlags::NONE);
+        window->mOrthoView->getView()->setRenderTarget(View::TargetBufferFlags::NONE);
 
         window->mDepthView->getView()->setShadowsEnabled(false);
         window->mGodView->getView()->setShadowsEnabled(false);
         window->mOrthoView->getView()->setShadowsEnabled(false);
 
         // the depthview doesn't draw the background (ibl), so we must clear it
+        window->mGodView->getView()->setClearColor({0, 0, 0, 1});
+        window->mOrthoView->getView()->setClearColor({0, 0, 0, 1});
         window->mDepthView->getView()->setClearColor({0, 0, 0, 1});
     }
 
@@ -548,6 +555,10 @@ FilamentApp::Window::Window(FilamentApp* filamentApp,
     // create views
     mViews.emplace_back(mMainView = new CView(*mRenderer, "Main View"));
     if (config.splitView) {
+        // mDepthView = new CView(*mRenderer, "Depth View");
+        // mGodView = new GodView(*mRenderer, "God View");
+        // mOrthoView = new CView(*mRenderer, "Ortho View");
+
         mViews.emplace_back(mDepthView = new CView(*mRenderer, "Depth View"));
         mViews.emplace_back(mGodView = new GodView(*mRenderer, "God View"));
         mViews.emplace_back(mOrthoView = new CView(*mRenderer, "Ortho View"));
@@ -689,7 +700,8 @@ void FilamentApp::Window::configureCamerasForWindow() {
 
     const float3 at(0, 0, -4);
     const double ratio = double(height) / double(width);
-    const int sidebar = mFilamentApp->mSidebarWidth * dpiScaleX;
+    // const int sidebar = mFilamentApp->mSidebarWidth * dpiScaleX;
+    const int sidebar = 0;
 
     // To trigger a floating-point exception, users could shrink the window to be smaller than
     // the sidebar. To prevent this we simply clamp the width of the main viewport.

@@ -197,6 +197,7 @@ private:
     bool mEnableShadows = true;
     bool mEnableContactShadows = true;
     bool mEnableDithering = true;
+    bool mEnableViewShadows = true;
     bool mEnableFxaa = true;
     bool mEnableMsaa = true;
     bool mEnableSsao = true;
@@ -438,6 +439,7 @@ void SimpleViewer::updateUserInterface() {
 
     if (ImGui::CollapsingHeader("View")) {
         ImGui::Checkbox("Dithering", &mEnableDithering);
+        ImGui::Checkbox("Shadowing", &mEnableViewShadows);
         ImGui::Checkbox("FXAA", &mEnableFxaa);
         ImGui::Checkbox("MSAA 4x", &mEnableMsaa);
         ImGui::Checkbox("SSAO", &mEnableSsao);
@@ -445,6 +447,7 @@ void SimpleViewer::updateUserInterface() {
     }
 
     mView->setDithering(mEnableDithering ? View::Dithering::TEMPORAL : View::Dithering::NONE);
+    mView->setShadowsEnabled(mEnableViewShadows);
     mView->setAntiAliasing(mEnableFxaa ? View::AntiAliasing::FXAA : View::AntiAliasing::NONE);
     mView->setSampleCount(mEnableMsaa ? 4 : 1);
     mView->setAmbientOcclusion(
