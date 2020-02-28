@@ -365,8 +365,8 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
 
         // Update the position and orientation of the two cameras.
         filament::math::float3 eye, center, up;
-        window->mMainCameraMan->getLookAt(&eye, &center, &up);
-        window->mMainCamera->lookAt(eye, center, up);
+        // window->mMainCameraMan->getLookAt(&eye, &center, &up);
+        // window->mMainCamera->lookAt(eye, center, up);
         window->mDebugCameraMan->getLookAt(&eye, &center, &up);
         window->mDebugCamera->lookAt(eye, center, up);
 
@@ -567,11 +567,11 @@ FilamentApp::Window::Window(FilamentApp* filamentApp,
 
     // set-up the camera manipulators
     camutils::Mode mode = camutils::Mode::ORBIT;
-    mMainCameraMan = CameraManipulator::Builder().targetPosition(0, 0, -4).build(mode);
+    mMainCameraMan = CameraManipulator::Builder().targetPosition(0, 0, 0).build(mode);
     mDebugCameraMan = CameraManipulator::Builder().targetPosition(0, 0, -4).build(mode);
 
     mMainView->setCamera(mMainCamera);
-    mMainView->setCameraManipulator(mMainCameraMan);
+    // mMainView->setCameraManipulator(mMainCameraMan);
     mUiView->setCamera(mUiCamera);
     if (config.splitView) {
         // Depth view always uses the main camera
@@ -591,7 +591,10 @@ FilamentApp::Window::Window(FilamentApp* filamentApp,
     // configure the cameras
     configureCamerasForWindow();
 
-    mMainCamera->lookAt({4, 0, -4}, {0, 0, -4}, {0, 1, 0});
+
+    // mMainCamera->lookAt({0, 0, 0}, {0, -1, 0}, {0, 0, -1});
+    // mMainCamera->lookAt({0, 3, 0}, {0, 0, 0}, {0, 0, -1});  // works with --actual-size
+    // mMainCamera->lookAt({0, 1, 0}, {0, -1, 0}, {0, 0, -1});
 }
 
 FilamentApp::Window::~Window() {

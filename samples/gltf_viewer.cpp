@@ -28,6 +28,7 @@
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
 #include <filament/LightManager.h>
+#include <filament/Camera.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -415,7 +416,7 @@ int main(int argc, char** argv) {
             LightManager::Builder(LightManager::Type::SPOT)
                     .intensity(200000.0f, LightManager::EFFICIENCY_HALOGEN)
                     .direction({0.0f, -1.0f, 0.0f})
-                    .falloff(5.0f)
+                    .falloff(20.0f)
                     .castShadows(true)
                     .build(*engine, spotLight);
 
@@ -429,6 +430,21 @@ int main(int argc, char** argv) {
             TransformManager& tcm = engine->getTransformManager();
             tcm.create(spotLight, tcm.getInstance(entity), {});
             scene->addEntity(spotLight);
+        });
+
+        forEachEntityWithName(app.asset, "Camera Cone", [&](Entity entity) {
+            // Hide the camera cone entity.
+            RenderableManager& rm = engine->getRenderableManager();
+            auto cameraConeInstance = rm.getInstance(entity);
+            rm.setCastShadows(cameraConeInstance, false);
+            rm.setLayerMask(cameraConeInstance, 0xF, 0x8);
+
+            // Parent the camera to the camera cone's transform.
+            TransformManager& tcm = engine->getTransformManager();
+
+            Entity camera = view->getCamera().getEntity();
+            view->getCamera().lookAt({0, 0, 0}, {0, 0, -1}, {0, 1, 0});
+            tcm.setParent(tcm.getInstance(camera), tcm.getInstance(entity));
         });
 
         std::fill_n(app.spotlightEnabled, 10, true);
