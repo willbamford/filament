@@ -4,9 +4,10 @@ options:
 include: ../app-template.yml
 targets:
     hello-gltf:
-        sources: hello-gltf/
         sources:
             - path: '../../../third_party/models/DamagedHelmet/DamagedHelmet.glb'
+              buildPhase: resources
+            - path: '/Users/bendoherty/BlenderTestScenes/animated_camera.glb'
               buildPhase: resources
         templates:
             - FilamentApp

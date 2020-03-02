@@ -23,6 +23,7 @@
 #include <image/KtxUtility.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/ResourceLoader.h>
+#include <gltfio/Animator.h>
 
 #include <fstream>
 #include <iostream>
@@ -38,9 +39,11 @@ App::App(void* nativeLayer, uint32_t width, uint32_t height, const utils::Path& 
     setupIbl();
     setupMesh();
     setupView();
+    setupScene();
 }
 
-void App::render() {
+void App::render(double currentTime) {
+    applyAnimation(currentTime);
     if (renderer->beginFrame(swapChain)) {
         renderer->render(view);
         renderer->endFrame();
@@ -79,10 +82,10 @@ void App::setupFilament() {
     renderer = engine->createRenderer();
     scene = engine->createScene();
     camera = engine->createCamera();
-    cameraManipulator.setCamera(camera);
-    cameraManipulator.setViewport(width, height);
-    cameraManipulator.lookAt(filament::math::double3(0, 0, 3), filament::math::double3(0, 0, 0));
-    camera->setProjection(60, (float) width / height, 0.1, 10);
+    // cameraManipulator.setCamera(camera);
+    // cameraManipulator.setViewport(width, height);
+    // cameraManipulator.lookAt(filament::math::double3(0, 0, 3), filament::math::double3(0, 0, 0));
+    camera->setProjection(60, (float) width / height, 0.1, 100);
 }
 
 void App::setupIbl() {
@@ -105,23 +108,24 @@ void App::setupIbl() {
         .irradiance(3, harmonics)
         .intensity(30000)
         .build(*engine);
-    scene->setIndirectLight(app.indirectLight);
-    scene->setSkybox(app.skybox);
+    // scene->setIndirectLight(app.indirectLight);
+    // scene->setSkybox(app.skybox);
 
     app.sun = EntityManager::get().create();
     LightManager::Builder(LightManager::Type::SUN)
         .castShadows(true)
         .direction({0.0, -1.0, 0.0})
         .build(*engine, app.sun);
-    scene->addEntity(app.sun);
+    // scene->addEntity(app.sun);
 }
 
 void App::setupMesh() {
     app.materialProvider = gltfio::createUbershaderLoader(engine);
-    app.assetLoader = gltfio::AssetLoader::create({engine, app.materialProvider, nullptr});
+    app.names = new utils::NameComponentManager(EntityManager::get());
+    app.assetLoader = gltfio::AssetLoader::create({engine, app.materialProvider, app.names});
 
     // Load the glTF file.
-    std::ifstream in(resourcePath.concat(utils::Path("DamagedHelmet.glb")), std::ifstream::in);
+    std::ifstream in(resourcePath.concat(utils::Path("animated_camera.glb")), std::ifstream::in);
     in.seekg(0, std::ios::end);
     std::ifstream::pos_type size = in.tellg();
     in.seekg(0);
@@ -149,4 +153,70 @@ void App::setupView() {
 
     // Even FXAA anti-aliasing is overkill on iOS retina screens. This saves a few ms.
     view->setAntiAliasing(View::AntiAliasing::NONE);
+}
+
+void App::setupScene() {
+    using namespace gltfio;
+    
+    app.animator = app.asset->getAnimator();
+
+    static auto forEachEntityWithName = [](FilamentAsset* asset, const char* name, auto f) {
+        Entity const* entities = asset->getEntities();
+        for (size_t e = 0; e < asset->getEntityCount(); e++) {
+            Entity entity = entities[e];
+            const char* entityName = asset->getName(entity);
+            if (!entityName) {
+                continue;
+            }
+            if (strstr(entityName, name) != nullptr) {
+                f(entity);
+            }
+        }
+    };
+
+    forEachEntityWithName(app.asset, "Spot Cone", [&](Entity entity) {
+        // Create a spot light.
+        Entity spotLight = EntityManager::get().create();
+        LightManager::Builder(LightManager::Type::SPOT)
+                .intensity(200000.0f, LightManager::EFFICIENCY_HALOGEN)
+                .direction({0.0f, -1.0f, 0.0f})
+                .falloff(15.0f)
+                .castShadows(true)
+                .spotLightCone(F_PI / 4 - .1f, F_PI / 4)
+                .build(*engine, spotLight);
+
+        // Hide the spot cone entity.
+        RenderableManager& rm = engine->getRenderableManager();
+        auto spotConeInstance = rm.getInstance(entity);
+        rm.setCastShadows(spotConeInstance, false);
+        rm.setLayerMask(spotConeInstance, 0xF, 0x8);
+
+        // Parent the spot light to the spot cone's transform.
+        TransformManager& tcm = engine->getTransformManager();
+        tcm.create(spotLight, tcm.getInstance(entity), {});
+        scene->addEntity(spotLight);
+    });
+
+    forEachEntityWithName(app.asset, "Camera Cone", [&](Entity entity) {
+        // Hide the camera cone entity.
+        RenderableManager& rm = engine->getRenderableManager();
+        auto cameraConeInstance = rm.getInstance(entity);
+        rm.setCastShadows(cameraConeInstance, false);
+        rm.setLayerMask(cameraConeInstance, 0xF, 0x8);
+
+        // Parent the camera to the camera cone's transform.
+        TransformManager& tcm = engine->getTransformManager();
+
+        Entity camera = view->getCamera().getEntity();
+        view->getCamera().lookAt({0, 0, 0}, {0, 0, -1}, {0, 1, 0});
+        tcm.setParent(tcm.getInstance(camera), tcm.getInstance(entity));
+    });
+}
+
+void App::applyAnimation(double currentTime) {
+    const size_t numAnimations = app.animator->getAnimationCount();
+    for (size_t i = 0; i < numAnimations; ++i) {
+        app.animator->applyAnimation(i, currentTime);
+    }
+    app.animator->updateBoneMatrices();
 }

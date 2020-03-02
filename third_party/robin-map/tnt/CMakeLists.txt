@@ -19,6 +19,8 @@ set(PUBLIC_HDRS
 # ==================================================================================================
 include_directories(${OUR_DIR}/tsl)
 
+install(FILES ${PUBLIC_HDRS} DESTINATION include/${TARGET})
+
 add_library(${TARGET} INTERFACE)
 target_sources(${TARGET} INTERFACE ${PUBLIC_HDRS})
 target_include_directories(${TARGET} INTERFACE ${OUR_DIR})

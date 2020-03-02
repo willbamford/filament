@@ -29,6 +29,7 @@
 #include "CameraManipulator.h"
 
 #include <utils/EntityManager.h>
+#include <utils/NameComponentManager.h>
 #include <utils/Path.h>
 
 using namespace filament;
@@ -40,6 +41,7 @@ namespace gltfio {
     class AssetLoader;
     class MaterialProvider;
     class FilamentAsset;
+    class Animator;
 }
 
 class App {
@@ -50,7 +52,7 @@ public:
     App(const App&) = delete;
     App& operator=(const App&) = delete;
 
-    void render();
+    void render(double currentTime);
     void pan(float deltaX, float deltaY);
 
 private:
@@ -60,6 +62,9 @@ private:
     void setupMaterial();
     void setupMesh();
     void setupView();
+    void setupScene();
+
+    void applyAnimation(double currentTime);
 
     void* nativeLayer = nullptr;
     uint32_t width, height;
@@ -83,6 +88,8 @@ private:
         gltfio::AssetLoader* assetLoader;
         gltfio::MaterialProvider* materialProvider;
         gltfio::FilamentAsset* asset;
+        gltfio::Animator* animator;
+        utils::NameComponentManager* names;
     } app;
 
     CameraManipulator cameraManipulator;

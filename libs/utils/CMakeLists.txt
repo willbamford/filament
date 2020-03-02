@@ -17,6 +17,14 @@ set(DIST_HDRS
         ${PUBLIC_HDR_DIR}/${TARGET}/Entity.h
         ${PUBLIC_HDR_DIR}/${TARGET}/EntityInstance.h
         ${PUBLIC_HDR_DIR}/${TARGET}/EntityManager.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/SingleInstanceComponentManager.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/NameComponentManager.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/StructureOfArrays.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/Allocator.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/Mutex.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/memalign.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/SpinLock.h
+        ${PUBLIC_HDR_DIR}/${TARGET}/Slice.h
         ${PUBLIC_HDR_DIR}/${TARGET}/CString.h
         ${PUBLIC_HDR_DIR}/${TARGET}/Path.h
         ${PUBLIC_HDR_DIR}/${TARGET}/unwindows.h
@@ -94,6 +102,8 @@ target_compile_options(${TARGET} PRIVATE
 set(INSTALL_TYPE ARCHIVE)
 install(TARGETS ${TARGET} ${INSTALL_TYPE} DESTINATION lib/${DIST_DIR})
 install(FILES ${DIST_HDRS} DESTINATION include/${TARGET})
+
+install(FILES ${PUBLIC_HDR_DIR}/${TARGET}/generic/Mutex.h DESTINATION include/${TARGET}/generic)
 
 # ==================================================================================================
 # Test executables

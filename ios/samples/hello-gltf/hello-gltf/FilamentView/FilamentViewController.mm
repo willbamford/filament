@@ -58,7 +58,13 @@
 
 - (void)render
 {
-    app->render();
+    static double time = CACurrentMediaTime();
+    static double appTime = 0.0;
+    const double delta = CACurrentMediaTime() - time;
+    time = CACurrentMediaTime();
+    appTime += delta;
+    app->render(appTime);
+    //app->render(CACurrentMediaTime());
 }
 
 - (void)didPan:(UIPanGestureRecognizer*)sender
