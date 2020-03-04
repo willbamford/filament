@@ -92,6 +92,10 @@ public:
      */
     void setIndirectLight(filament::IndirectLight* ibl, filament::math::float3 const* sh3);
 
+    void setDirectionalLightCastShadows(bool shadows) {
+        mEnableShadows = shadows;
+    }
+
     /**
      * Applies the currently-selected glTF animation to the transformation hierarchy and updates
      * the bone matrices on all renderables.
@@ -185,7 +189,16 @@ private:
     std::function<void()> mCustomUI;
 
     // Properties that can be changed from the UI.
-    int mCurrentAnimation = 1;
+    enum AnimationOption {
+        DISABLED,
+        PLAY_ALL,
+
+        COUNT
+    };
+    int mSelectedAnimationRadio = AnimationOption::PLAY_ALL;
+    int mCurrentAnimation = 0;
+    bool mDisableAnimations = false;
+    bool mPlayAllAnimations = false;
     bool mResetAnimation = true;
     float mIblIntensity = 30000.0f;
     float mIblRotation = 0.0f;
@@ -344,8 +357,14 @@ void SimpleViewer::applyAnimation(double currentTime) {
         }
         mResetAnimation = false;
     }
-    if (numAnimations > 0 && mCurrentAnimation > 0) {
-        mAnimator->applyAnimation(mCurrentAnimation - 1, currentTime - startTime);
+    if (numAnimations > 0 && !mDisableAnimations) {
+        if (mPlayAllAnimations) {
+            for (size_t i = 0; i < numAnimations; i++) {
+                mAnimator->applyAnimation(i, currentTime - startTime);
+            }
+        } else {
+            mAnimator->applyAnimation(mCurrentAnimation, currentTime - startTime);
+        }
     }
     mAnimator->updateBoneMatrices();
 }
@@ -361,14 +380,20 @@ void SimpleViewer::updateUserInterface() {
 
     // Show a common set of UI widgets for all renderables.
     auto renderableTreeItem = [this, &rm](utils::Entity entity) {
+        auto instance = rm.getInstance(entity);
         bool rvis = mScene->hasEntity(entity);
+        bool shadowCaster = rm.isShadowCaster(instance);
+        bool shadowReceiver = rm.isShadowReceiver(instance);
         ImGui::Checkbox("visible", &rvis);
+        ImGui::Checkbox("shadow caster", &shadowCaster);
+        ImGui::Checkbox("shadow receiver", &shadowReceiver);
         if (rvis) {
             mScene->addEntity(entity);
         } else {
             mScene->remove(entity);
         }
-        auto instance = rm.getInstance(entity);
+        rm.setCastShadows(instance, shadowCaster);
+        rm.setReceiveShadows(instance, shadowReceiver);
         size_t numPrims = rm.getPrimitiveCount(instance);
         for (size_t prim = 0; prim < numPrims; ++prim) {
             const Material* mat = rm.getMaterialInstanceAt(instance, prim)->getMaterial();
@@ -408,18 +433,24 @@ void SimpleViewer::updateUserInterface() {
 
     auto animationsTreeItem = [&]() {
         size_t count = mAnimator->getAnimationCount();
-        int selectedAnimation = mCurrentAnimation;
-        ImGui::RadioButton("Disable", &selectedAnimation, 0);
+        int selectedAnimation = mSelectedAnimationRadio;
+        ImGui::RadioButton("Disable", &selectedAnimation, AnimationOption::DISABLED);
+        ImGui::RadioButton("Play All", &selectedAnimation, AnimationOption::PLAY_ALL);
         for (size_t i = 0; i < count; ++i) {
             std::string label = mAnimator->getAnimationName(i);
             if (label.empty()) {
                 label = "Unnamed " + std::to_string(i);
             }
-            ImGui::RadioButton(label.c_str(), &selectedAnimation, i + 1);
+            ImGui::RadioButton(label.c_str(), &selectedAnimation, i + AnimationOption::COUNT);
         }
-        if (selectedAnimation != mCurrentAnimation) {
-            mCurrentAnimation = selectedAnimation;
+        mDisableAnimations = selectedAnimation == AnimationOption::DISABLED;
+        mPlayAllAnimations = selectedAnimation == AnimationOption::PLAY_ALL;
+        if (mSelectedAnimationRadio >= AnimationOption::COUNT) {
+            mCurrentAnimation = selectedAnimation - AnimationOption::COUNT;
+        }
+        if (selectedAnimation != mSelectedAnimationRadio) {
             mResetAnimation = true;
+            mSelectedAnimationRadio = selectedAnimation;
         }
     };
 

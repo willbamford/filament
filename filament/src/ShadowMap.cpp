@@ -151,7 +151,6 @@ void ShadowMap::update(const FScene::LightSoa& lightData, size_t index, FScene c
     if (dzf > 0)    dzf =-std::max(0.0f, camera.zf - params.options.shadowFarHint) / dz;
     else            params.options.shadowFarHint = dzf * dz + camera.zf;
 
-
     using Type = FLightManager::Type;
     switch (lcm.getType(li)) {
         case Type::SUN:

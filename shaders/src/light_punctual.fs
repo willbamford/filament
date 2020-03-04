@@ -177,6 +177,22 @@ Light getPointLight(uint index) {
     return light;
 }
 
+vec3 debugIntToColor(uint x) {
+    if (x == 0u) {
+        return vec3(1.0, 0.0, 0.0);     // red
+    } else if (x == 1u) {
+        return vec3(0.0, 1.0, 0.0);     // green
+    } else if (x == 2u) {
+        return vec3(0.0, 0.0, 1.0);     // blue
+    } else if (x == 3u) {
+        return vec3(1.0, 1.0, 0.0);     // yellow
+    } else if (x == 4u) {
+        return vec3(1.0, 0.0, 1.0);     // purple
+    } else if (x == 5u) {
+        return vec3(0.0, 1.0, 1.0);     // cyan
+    }
+}
+
 /**
  * Evaluates all punctual lights that my affect the current fragment.
  * The result of the lighting computations is accumulated in the color

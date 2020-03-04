@@ -937,10 +937,13 @@ void MetalDriver::draw(backend::PipelineState ps, Handle<HwRenderPrimitive> rph)
         [mContext->currentRenderPassEncoder setCullMode:cullMode];
     }
 
+    const bool depthWrite = mContext->currentDepthPixelFormat != MTLPixelFormatInvalid ? rs.depthWrite : false;
+    const MTLCompareFunction compareFunction = mContext->currentDepthPixelFormat != MTLPixelFormatInvalid ? getMetalCompareFunction(rs.depthFunc) : MTLCompareFunctionNever;
+
     // Set the depth-stencil state, if a state change is needed.
     DepthStencilState depthState {
-        .compareFunction = getMetalCompareFunction(rs.depthFunc),
-        .depthWriteEnabled = rs.depthWrite,
+        .compareFunction = compareFunction,
+        .depthWriteEnabled = depthWrite,
     };
     mContext->depthStencilState.updateState(depthState);
     if (mContext->depthStencilState.stateChanged()) {
