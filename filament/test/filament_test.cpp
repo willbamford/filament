@@ -863,6 +863,77 @@ TEST(FilamentTest, Bones) {
     }
 }
 
+TEST(FilamentTest, ShadowMatrix) {
+    const float atlasDimension = 8.0f;
+    const float textureDimension = 4.0f;
+    const float shadowDimension = 2.0f;
+
+    // 0, 0
+
+    const mat4f Mt(false ? mat4f::row_major_init{
+            0.5f,   0,    0,  0.5f,
+            0, -0.5f,   0,  0.5f,
+            0,    0,  0.5f, 0.5f,
+            0,    0,    0,    1
+    } : mat4f::row_major_init{
+            0.5f,   0,    0,  0.5f,
+            0,  0.5f,   0,  0.5f,
+            0,    0,  0.5f, 0.5f,
+            0,    0,    0,    1
+    });
+
+    // .5, .5
+
+    const float v = textureDimension / atlasDimension;
+    const mat4f Mv(mat4f::row_major_init{
+            v, 0, 0, 0,
+            0, v, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+    });
+
+    // .25, .25
+
+    const float a = 1.0f / atlasDimension;
+    const float o = 1.0f / textureDimension;
+    const float s = 1.0f - 2.0f * o;
+    const mat4f Mb(mat4f::row_major_init{
+            s, 0, 0, a,
+            0, s, 0, a,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+    });
+
+    const mat4f Mf = true ? mat4f(mat4f::row_major_init{
+            1,  0,  0,  0,
+            0, -1,  0,  1,
+            0,  0,  1,  0,
+            0,  0,  0,  1
+    }) : mat4f();
+
+    // 0.25, 0.5
+
+    std::cout << "(0.0, 0.0) -> " << Mf * Mb * Mv * Mt * float4(0.0, 0.0, 0.0, 1.0) << std::endl;
+    std::cout << "(-1.0, 0.0) -> " << Mf * Mb * Mv * Mt * float4(-1.0, 0.0, 0.0, 1.0) << std::endl;
+    std::cout << "(1.0, 0.0) -> " << Mf * Mb * Mv * Mt * float4(1.0, 0.0, 0.0, 1.0) << std::endl;
+    std::cout << "(0.0, 1.0) -> " << Mf * Mb * Mv * Mt * float4(0.0, 1.0, 0.0, 1.0) << std::endl;
+    std::cout << "(0.0, -1.0) -> " << Mf * Mb * Mv * Mt * float4(0.0, -1.0, 0.0, 1.0) << std::endl;
+
+    /*
+     * middle: 2/8, 2/8
+     * left: 1/8
+     * right: 3/8
+     * x x x x . . . .
+     * x . . x . . . .
+     * x . . x . . . .
+     * x x x x . . . .
+     * . . . . . . . .
+     * . . . . . . . .
+     * . . . . . . . .
+     * . . . . . . . .
+     */
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
