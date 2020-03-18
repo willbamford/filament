@@ -187,6 +187,10 @@ bool ShadowMapManager::update(FEngine& engine, FView& view, UniformBuffer& perVi
 
     FScene::ShadowInfo* const shadowInfo = lightData.data<FScene::SHADOW_INFO>();
 
+    for (size_t l = 0; l < CONFIG_MAX_SHADOW_CASTING_SPOTS; l++) {
+        shadowUb.setUniform(offsetof(ShadowUib, shadow) + sizeof(uint4) * l, uint4{0, 0, 0, 0});
+    }
+
     for (size_t i = 0, c = mSpotShadowMaps.size(); i < c; i++) {
         auto& entry = mSpotShadowMaps[i];
 
@@ -225,6 +229,10 @@ bool ShadowMapManager::update(FEngine& engine, FView& view, UniformBuffer& perVi
             const float normalBias = lcm.getShadowNormalBias(light);
             u.setUniform(offsetof(ShadowUib, directionShadowBias) + sizeof(float4) * i,
                     float4{ dir.x, dir.y, dir.z, normalBias * texelSizeWorldSpace });
+
+            // This uniform needs to be updated always.
+            u.setUniform(offsetof(ShadowUib, shadow) + sizeof(uint4) * i,
+                    uint4{ shadowInfo[l].pack(), 0, 0, 0 });
 
             hasShadowing = true;
         }

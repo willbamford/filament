@@ -36,7 +36,25 @@ vec4 evaluateMaterial(const MaterialInputs material) {
 
 #if defined(HAS_DIRECTIONAL_LIGHTING)
 #if defined(HAS_SHADOWING)
-    color *= 1.0 - shadow(light_shadowMap, 0u, getLightSpacePosition());
+    float s = 1.0f;
+    /*
+    if (frameUniforms.directionalShadows) {
+        s *= shadow(light_shadowMap, 0u, getLightSpacePosition());
+    }
+     */
+#if defined(HAS_DYNAMIC_LIGHTING)
+    for (uint l = 0u; l < uint(MAX_SHADOW_CASTING_SPOTS); l++) {
+        uint shadowBits = shadowUniforms.shadow[l].x;
+        bool castsShadows = bool(shadowBits & 0x1u);
+        uint shadowIndex = ((shadowBits & 0x01Eu) >> 1u);
+        uint shadowLayer = ((shadowBits & 0x1E0u) >> 5u);
+
+        if (castsShadows) {
+            s *= shadow(light_shadowMap, shadowLayer, getSpotLightSpacePosition(l));
+        }
+    }
+#endif
+    color *= 1.0 - s;
 #else
     color = vec4(0.0);
 #endif

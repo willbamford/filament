@@ -397,6 +397,10 @@ const std::string ShaderGenerator::createFragmentProgram(filament::backend::Shad
             BindingPoints::LIGHTS, UibGenerator::getLightsUib());
     cg.generateUniforms(fs, ShaderType::FRAGMENT,
             BindingPoints::PER_MATERIAL_INSTANCE, material.uib);
+    if (litVariants && variant.hasShadowReceiver()) {
+        cg.generateUniforms(fs, ShaderType::FRAGMENT,
+                BindingPoints::SHADOW, UibGenerator::getShadowUib());
+    }
     cg.generateSeparator(fs);
     cg.generateSamplers(fs,
             material.samplerBindings.getBlockOffset(BindingPoints::PER_VIEW),

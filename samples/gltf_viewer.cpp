@@ -273,8 +273,8 @@ int main(int argc, char** argv) {
     App app;
 
     app.config.title = "Filament";
-    // app.config.splitView = true;
-    // app.config.iblDirectory = FilamentApp::getRootAssetsPath() + DEFAULT_IBL;
+    app.config.splitView = true;
+    app.config.iblDirectory = FilamentApp::getRootAssetsPath() + DEFAULT_IBL;
 
     int optionIndex = handleCommandLineArguments(argc, argv, &app);
     utils::Path filename;

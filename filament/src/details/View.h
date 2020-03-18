@@ -183,7 +183,8 @@ public:
     void setShadowsEnabled(bool enabled) noexcept { mShadowingEnabled = enabled; }
 
     FCamera const* getDirectionalLightCamera() const noexcept {
-        return &mDirectionalShadowMap.getDebugCamera();
+        return &mSpotShadowMap[1]->getDebugCamera();
+        //return &mDirectionalShadowMap.getDebugCamera();
     }
 
     void setRenderTarget(FRenderTarget* renderTarget, TargetBufferFlags discard) noexcept {

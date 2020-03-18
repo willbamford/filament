@@ -117,7 +117,7 @@ struct LightsUib {
     filament::math::float4 colorIntensity;    // { float3(col), intensity }
     filament::math::float4 directionIES;      // { float3(dir), IES index }
     filament::math::float2 spotScaleOffset;   // { scale, offset }
-    filament::math::uint2 shadow;             // { shadow bits (see ShadowInfo), unused }
+    filament::math::uint2 shadowIndex;        // { index into ShadowUib, castsShadows }
 };
 
 // UBO for punctual (spot light) shadows.
@@ -128,6 +128,7 @@ struct ShadowUib {
 
     filament::math::mat4f spotLightFromWorldMatrix[CONFIG_MAX_SHADOW_CASTING_SPOTS];
     filament::math::float4 directionShadowBias[CONFIG_MAX_SHADOW_CASTING_SPOTS]; // light direction, normal bias
+    filament::math::uint4 shadow[CONFIG_MAX_SHADOW_CASTING_SPOTS]; // shadow bits (see ShadowInfo)
 };
 
 // This is not the UBO proper, but just an element of a bone array.

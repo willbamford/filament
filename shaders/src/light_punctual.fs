@@ -119,6 +119,22 @@ void setupPunctualLight(inout Light light, const highp vec4 positionFalloff) {
     light.NoL = saturate(dot(shading_normal, light.l));
 }
 
+vec3 debugIntToColor(uint x) {
+    if (x == 0u) {
+        return vec3(1.0, 0.0, 0.0);     // red
+    } else if (x == 1u) {
+        return vec3(0.0, 1.0, 0.0);     // green
+    } else if (x == 2u) {
+        return vec3(0.0, 0.0, 1.0);     // blue
+    } else if (x == 3u) {
+        return vec3(1.0, 1.0, 0.0);     // yellow
+    } else if (x == 4u) {
+        return vec3(1.0, 0.0, 1.0);     // purple
+    } else if (x == 5u) {
+        return vec3(0.0, 1.0, 1.0);     // cyan
+    }
+}
+
 /**
  * Returns a Light structure (see common_lighting.fs) describing a spot light.
  * The colorIntensity field will store the *pre-exposed* intensity of the light
@@ -144,11 +160,22 @@ Light getSpotLight(uint index) {
 
     light.attenuation *= getAngleAttenuation(-directionIES.xyz, light.l, scaleOffsetShadow.xy);
 
-    uint shadowBits = floatBitsToUint(scaleOffsetShadow.z);
+#if defined(HAS_SHADOWING)
+    uint shadowIndex = floatBitsToUint(scaleOffsetShadow.z);
+    bool castsShadows = bool(floatBitsToUint(scaleOffsetShadow.w));
 
-    light.castsShadows = bool(shadowBits & 0x1u);
+    // light.colorIntensity.rgb = debugIntToColor(shadowIndex);
+    // uint shadowBits = floatBitsToUint(scaleOffsetShadow.z);
+    uint shadowBits = shadowUniforms.shadow[shadowIndex].x;
+
+    light.castsShadows = bool(shadowBits & 0x1u) && castsShadows;
     light.shadowIndex = ((shadowBits & 0x01Eu) >> 1u);
     light.shadowLayer = ((shadowBits & 0x1E0u) >> 5u);
+#else
+    light.castsShadows = false;
+    light.shadowIndex = 0;
+    light.shadowLayer = 0;
+#endif
 
     return light;
 }
@@ -177,21 +204,6 @@ Light getPointLight(uint index) {
     return light;
 }
 
-vec3 debugIntToColor(uint x) {
-    if (x == 0u) {
-        return vec3(1.0, 0.0, 0.0);     // red
-    } else if (x == 1u) {
-        return vec3(0.0, 1.0, 0.0);     // green
-    } else if (x == 2u) {
-        return vec3(0.0, 0.0, 1.0);     // blue
-    } else if (x == 3u) {
-        return vec3(1.0, 1.0, 0.0);     // yellow
-    } else if (x == 4u) {
-        return vec3(1.0, 0.0, 1.0);     // purple
-    } else if (x == 5u) {
-        return vec3(0.0, 1.0, 1.0);     // cyan
-    }
-}
 
 /**
  * Evaluates all punctual lights that my affect the current fragment.

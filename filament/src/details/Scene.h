@@ -151,10 +151,14 @@ public:
 
     struct ShadowInfo {
         // These are per-light values.
-        // They're packed into 32 bits and stored in the Lights uniform buffer.
+        // They're packed into 32 bits and stored in the Lights and Shadows uniform buffers.
         // They're unpacked in the fragment shader and used to calculate punctual shadows.
+
+        // Lights uniform
         bool castsShadows = false;      // whether this light casts shadows
         uint8_t index = 0;              // an index into the arrays in the Shadows uniform buffer
+
+        // Shadow uniform
         uint8_t layer = 0;              // which layer of the shadow texture array to sample from
 
         //  -- LSB -------------
