@@ -1,0 +1,20 @@
+material {
+    name : PageCurl,
+    requires : [
+        uv0
+    ],
+    shadingModel : lit,
+    parameters : [
+        {
+            type : sampler2d,
+            name : baseColor
+        }
+    ],
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_baseColor, getUV0());
+    }
+}
