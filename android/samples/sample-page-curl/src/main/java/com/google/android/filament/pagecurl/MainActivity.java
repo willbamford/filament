@@ -18,6 +18,11 @@ package com.google.android.filament.pagecurl;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.view.Choreographer;
@@ -38,10 +43,12 @@ import com.google.android.filament.Renderer;
 import com.google.android.filament.Scene;
 import com.google.android.filament.Skybox;
 import com.google.android.filament.SwapChain;
+import com.google.android.filament.Texture;
 import com.google.android.filament.TransformManager;
 import com.google.android.filament.Viewport;
 
 import com.google.android.filament.android.DisplayHelper;
+import com.google.android.filament.android.TextureHelper;
 import com.google.android.filament.android.UiHelper;
 
 public class MainActivity extends Activity
@@ -49,6 +56,7 @@ public class MainActivity extends Activity
     static {
         Filament.init();
     }
+
     private SurfaceView mSurfaceView;
     private UiHelper mUiHelper;
     private DisplayHelper mDisplayHelper;
@@ -61,12 +69,19 @@ public class MainActivity extends Activity
     private Page mPage;
     private PageMaterials mPageMaterials;
     private Scene mScene;
+    private Texture[] mTextures = new Texture[2];
     private @Entity int mLight;
 
     private float[] mTouchDownPoint = new float[2];
     private float mTouchDownValue = 0;
     private float mPageAnimationRadians = 0;
     private float mPageAnimationValue = 0;
+
+    private enum TextureType {
+        COLOR,
+        NORMAL,
+        DATA
+    }
 
     @Override
     public void onNativeWindowChanged(Surface surface) {
@@ -89,7 +104,7 @@ public class MainActivity extends Activity
 
     @Override
     public void onResized(int width, int height) {
-        float aspect = (float)width / (float)height;
+        float aspect = (float) width / (float) height;
         if (aspect < 1) {
             mCamera.setProjection(70.0, aspect, 1.0, 2000.0, Camera.Fov.VERTICAL);
         } else {
@@ -104,7 +119,7 @@ public class MainActivity extends Activity
 
         final float[] transformMatrix = new float[16];
         final double degrees = -Math.toDegrees(mPageAnimationRadians);
-        Matrix.setRotateM(transformMatrix, 0, (float)degrees, 0.0f, 1.0f, 0.0f);
+        Matrix.setRotateM(transformMatrix, 0, (float) degrees, 0.0f, 1.0f, 0.0f);
         TransformManager tcm = mEngine.getTransformManager();
         tcm.setTransform(tcm.getInstance(mPage.renderable), transformMatrix);
 
@@ -163,6 +178,10 @@ public class MainActivity extends Activity
             throw new IllegalStateException("Unable to build page geometry");
         }
 
+        mTextures[0] = loadTexture(mEngine, R.drawable.dog, TextureType.COLOR);
+        mTextures[1] = loadTexture(mEngine, R.drawable.cat, TextureType.COLOR);
+        mPage.setTextures(mTextures[0], mTextures[1]);
+
         mScene.addEntity(mPage.renderable);
 
         mSurfaceView.setOnTouchListener(this);
@@ -193,6 +212,8 @@ public class MainActivity extends Activity
         mEngine.destroyIndexBuffer(mPage.indexBuffer);
         mEngine.destroyMaterialInstance(mPage.material);
         mEngine.destroyMaterial(mPageMaterials.getMaterial());
+        mEngine.destroyTexture(mTextures[0]);
+        mEngine.destroyTexture(mTextures[1]);
 
         mEngine.destroyView(mView);
         mEngine.destroyScene(mScene);
@@ -227,5 +248,53 @@ public class MainActivity extends Activity
             }
         }
         return super.onTouchEvent(event);
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private Texture loadTexture(Engine engine, int resourceId, TextureType type) {
+        Resources resources = getResources();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        // Color is the only type of texture we want to pre-multiply with the alpha channel
+        // Pre-multiplication is the default behavior, so we need to turn it off here
+        options.inPremultiplied = type == TextureType.COLOR;
+
+        Bitmap bitmap = BitmapFactory.decodeResource(resources, resourceId, options);
+
+        bitmap = addWhiteBorder(bitmap, 20);
+
+        Texture texture = new Texture.Builder()
+                .width(bitmap.getWidth())
+                .height(bitmap.getHeight())
+                .sampler(Texture.Sampler.SAMPLER_2D)
+                .format(internalFormat(type))
+                // This tells Filament to figure out the number of mip levels
+                .levels(0xff)
+                .build(engine);
+
+        // TextureHelper offers a method that skips the copy of the bitmap into a ByteBuffer
+        TextureHelper.setBitmap(engine, texture, 0, bitmap);
+
+        texture.generateMipmaps(engine);
+
+        return texture;
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private Bitmap addWhiteBorder(Bitmap bmp, int borderSize) {
+        Bitmap bmpWithBorder = Bitmap.createBitmap(bmp.getWidth() + borderSize * 2, bmp.getHeight() + borderSize * 2, bmp.getConfig());
+        Canvas canvas = new Canvas(bmpWithBorder);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(bmp, borderSize, borderSize, null);
+        return bmpWithBorder;
+    }
+
+    private Texture.InternalFormat internalFormat(TextureType type) {
+        switch (type) {
+            case COLOR: return Texture.InternalFormat.SRGB8_A8;
+            case NORMAL:
+            case DATA:
+                return Texture.InternalFormat.RGBA8;
+        }
+        throw new IllegalArgumentException("Unknown texture type");
     }
 }

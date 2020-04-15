@@ -21,14 +21,15 @@ import com.google.android.filament.Entity;
 import com.google.android.filament.IndexBuffer;
 import com.google.android.filament.MaterialInstance;
 import com.google.android.filament.MathUtils;
+import com.google.android.filament.Texture;
+import com.google.android.filament.TextureSampler;
 import com.google.android.filament.VertexBuffer;
 
 import java.nio.FloatBuffer;
 
 @SuppressWarnings("WeakerAccess")
 public class Page {
-    public @Entity
-    int renderable;
+    public @Entity int renderable;
     public MaterialInstance material;
     public VertexBuffer vertexBuffer;
     public IndexBuffer indexBuffer;
@@ -38,6 +39,12 @@ public class Page {
     public FloatBuffer positions;
     public FloatBuffer normals;
     public FloatBuffer tangents;
+
+    public void setTextures(Texture sideA, Texture sideB) {
+        TextureSampler sampler = new TextureSampler();
+        material.setParameter("textureSideA", sideA, sampler);
+        material.setParameter("textureSideB", sideB, sampler);
+    }
 
     // Takes an animation value in [0,1] and updates the positions array.
     // Returns a rotation value that should be applied to the entire page.

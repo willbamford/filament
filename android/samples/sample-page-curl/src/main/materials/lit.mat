@@ -14,15 +14,35 @@ material {
         {
             type : float,
             name : metallic
+        },
+        {
+            type : sampler2d,
+            name : textureSideA
+        },
+        {
+            type : sampler2d,
+            name : textureSideB
         }
     ],
+    requires: [
+        uv0
+    ]
 }
 
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
 
-        material.baseColor.rgb = materialParams.baseColor;
+        vec2 uv = getUV0();
+
+        vec4 c;
+        if (gl_FrontFacing) {
+            c = texture(materialParams_textureSideA, uv);
+        } else {
+            c = texture(materialParams_textureSideB, uv);
+        }
+
+        material.baseColor.rgb = c.rgb;
         material.roughness = materialParams.roughness;
         material.metallic = materialParams.metallic;
     }
