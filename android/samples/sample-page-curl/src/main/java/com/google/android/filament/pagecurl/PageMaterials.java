@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class PageMaterials {
     private final Material mMaterial;
 
@@ -39,7 +40,7 @@ public class PageMaterials {
         IMAGE_TEXTURE,
         APEX_FLOAT,
         THETA_FLOAT,
-    };
+    }
 
     static String getParameterName(Parameter parameter) {
         switch (parameter) {
@@ -55,6 +56,7 @@ public class PageMaterials {
 
     public PageMaterials(Engine engine, AssetManager assets) {
         ByteBuffer asset = readAsset(assets, "materials/lit.filamat");
+        assert asset != null;
         mMaterial = new Material.Builder()
                 .payload(asset, asset.remaining())
                 .build(engine);
@@ -63,8 +65,8 @@ public class PageMaterials {
     public MaterialInstance createInstance() {
         MaterialInstance mi = mMaterial.createInstance();
         mi.setParameter("baseColor", 1.0f, 1.0f, 1.0f);
-        mi.setParameter("roughness", 1.0f, 1.0f, 1.0f);
-        mi.setParameter("metallic", 1.0f, 1.0f, 1.0f);
+        mi.setParameter("roughness", 0.0f);
+        mi.setParameter("metallic", 0.0f);
         return mi;
     }
 
@@ -73,6 +75,7 @@ public class PageMaterials {
     }
 
     @Nullable
+    @SuppressWarnings("SameParameterValue")
     private ByteBuffer readAsset(AssetManager assets, @NonNull String assetName) {
         ByteBuffer dst = null;
         try (AssetFileDescriptor fd = assets.openFd(assetName)) {

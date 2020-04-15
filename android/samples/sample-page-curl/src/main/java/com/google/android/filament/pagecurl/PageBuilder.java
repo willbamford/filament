@@ -25,7 +25,7 @@ import com.google.android.filament.VertexBuffer;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class PageBuilder {
     private final PageMaterials mMaterials;
     private final float[] mSize = new float[] { 1.0f, 1.0f };

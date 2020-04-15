@@ -4,8 +4,7 @@ apply plugin: FilamentToolsPlugin
 project.ext.isSample = true
 
 filamentTools {
-    cmgenArgs = "-q --format=ktx --size=256 --extract-blur=0.1 --deploy=src/main/assets/envs/venetian_crossroads_2k"
-    iblInputFile = file("../../../third_party/environments/venetian_crossroads_2k.hdr")
+    iblInputFile = file("../../../third_party/environments/studio_small_02_2k.hdr")
     iblOutputDir = file("src/main/assets/envs")
     materialInputDir = file("src/main/materials")
     materialOutputDir = file("src/main/assets/materials")

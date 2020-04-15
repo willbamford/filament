@@ -38,6 +38,7 @@ import com.google.android.filament.Engine;
 import com.google.android.filament.Entity;
 import com.google.android.filament.EntityManager;
 import com.google.android.filament.Filament;
+import com.google.android.filament.IndirectLight;
 import com.google.android.filament.LightManager;
 import com.google.android.filament.Renderer;
 import com.google.android.filament.Scene;
@@ -71,6 +72,7 @@ public class MainActivity extends Activity
     private Scene mScene;
     private Texture[] mTextures = new Texture[2];
     private @Entity int mLight;
+    private IndirectLight mIndirectLight;
 
     private float[] mTouchDownPoint = new float[2];
     private float mTouchDownValue = 0;
@@ -159,10 +161,14 @@ public class MainActivity extends Activity
         float[] col = Colors.cct(5_500.0f);
         new LightManager.Builder(LightManager.Type.DIRECTIONAL)
                 .color(col[0], col[1], col[2])
-                .intensity(110_000.0f)
+                .intensity(50_000.0f)
                 .direction(0.0f, -0.5f, -1.0f)
                 .castShadows(false)
                 .build(mEngine, mLight);
+
+        mIndirectLight = IblLoader.loadIndirectLight(getAssets(), "envs/studio_small_02_2k", mEngine);
+        mIndirectLight.setIntensity(10_000);
+        mScene.setIndirectLight(mIndirectLight);
 
         mScene.addEntity(mLight);
 
@@ -214,6 +220,7 @@ public class MainActivity extends Activity
         mEngine.destroyMaterial(mPageMaterials.getMaterial());
         mEngine.destroyTexture(mTextures[0]);
         mEngine.destroyTexture(mTextures[1]);
+        mEngine.destroyIndirectLight(mIndirectLight);
 
         mEngine.destroyView(mView);
         mEngine.destroyScene(mScene);
