@@ -1497,7 +1497,7 @@ class_<AssetLoader>("gltfio$AssetLoader")
         return self->createAssetFromJson((const uint8_t*) buffer.bd->buffer, buffer.bd->size);
     }), allow_raw_pointers())
 
-    /// createAssetFroBinary ::static method::
+    /// createAssetFromBinary ::static method::
     /// buffer ::argument:: asset string, or Uint8Array, or [Buffer]
     /// ::retval:: an instance of [FilamentAsset]
     .function("_createAssetFromBinary", EMBIND_LAMBDA(FilamentAsset*,
